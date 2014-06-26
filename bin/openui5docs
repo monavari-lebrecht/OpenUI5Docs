@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 var fs = require('fs');
+var mkdirp = require('mkdirp');
 var path = require('path');
 var log = require('verbalize');
+var ncp = require('ncp').ncp;
 var argv = require('minimist')(process.argv.slice(2));
 
 
@@ -14,37 +16,24 @@ var argv = require('minimist')(process.argv.slice(2));
 // Verbalize `runner`
 log.runner = 'open-ui5-docs';
 
-// Use `-f` or `--file` to specify the source file
-var file  = argv._[0] || argv.f || argv.file || 'TODO.md';
+// Use `-n` or `--name` to specify the text to append
+var name = argv._[0] || argv.n || argv.name;
 
-// Use `-t` or `--task` to specify the text to append
-var task = argv._[1] || argv.t || argv.task;
+// Use `-n` or `--name` to specify the text to append
+var jsdocs = argv._[1] || argv.d || argv.jsdocs;
 
-
-if (!file) {
-  log.error('Please provide a source file, either as a first argument or with `-s`');
-}
-
-if (!task) {
-  log.error('No tasks will be appended to "' + file + '" since you didn\'t specify anything.');
-}
-
-
+var targetDocumentationDirectory = path.resolve() + '/' + name + '.docset/Contents/Resources/Documents/';
 /**
  * Application
  */
 
-
-if(!fs.existsSync(file)) {
-  fs.writeFileSync(file, '# Tasks\n\n');
-}
-
-fs.appendFile(file, ('- [ ] ' + task + '\n'), function (err) {
-  if (err) {throw err;}
-
-  log.writeln();
-  log.writeln(log.gray('  todo [appended] ') + '\'' + task + '\' to ' + log.bold(file));
-
-  // If all is well, log a success message.
-  log.success('  ' + log.runner + ' [done]');
+	// create filesystem for dash docset
+mkdirp(targetDocumentationDirectory, function() {
+	console.log('Docset scaffold created!')
+	ncp(jsdocs, targetDocumentationDirectory, function (err) {
+		if (err) {
+			return console.error(err);
+		}
+		console.log('Documentation copied!');
+	});
 });

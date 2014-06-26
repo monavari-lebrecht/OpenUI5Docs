@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "minimist": "~0.0.8",
-    "verbalize": "~0.1.1"
+    "verbalize": "~0.1.1",
+	"mkdirp": "*"
   }
 }
