@@ -39,8 +39,13 @@ function populateDatabase() {
 		database.run("CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT)");
 		database.run("CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path)");
 		var stmt = database.prepare("INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?)");
+		fs.readdir(targetDocumentationDirectory, function (err, files) {
+			files.forEach(function (file) {
+				stmt.run(file.substring(0, file.length - 5), 'Class', file);
+			});
 
-		stmt.finalize();
+			stmt.finalize();
+		});
 	});
 	database.close();
 }
