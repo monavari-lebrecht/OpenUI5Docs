@@ -4,16 +4,16 @@ var fs = require('fs');
 var mkdirp = require('mkdirp');
 var path = require('path');
 var log = require('verbalize');
+var _ = require('lodash');
 var ncp = require('ncp').ncp;
 var argv = require('minimist')(process.argv.slice(2));
-
 
 /**
  * Everything in the file should be customized
  */
 
 
-// Verbalize `runner`
+	// Verbalize `runner`
 log.runner = 'open-ui5-docs';
 
 // Use `-n` or `--name` to specify the text to append
@@ -22,18 +22,29 @@ var name = argv._[0] || argv.n || argv.name;
 // Use `-n` or `--name` to specify the text to append
 var jsdocs = argv._[1] || argv.d || argv.jsdocs;
 
-var targetDocumentationDirectory = path.resolve() + '/' + name + '.docset/Contents/Resources/Documents/';
+var docsetPath = path.resolve() + '/' + name + '.docset/';
+var targetDocumentationDirectory = docsetPath + 'Contents/Resources/Documents/';
 /**
  * Application
  */
 
 	// create filesystem for dash docset
-mkdirp(targetDocumentationDirectory, function() {
+mkdirp(targetDocumentationDirectory, function () {
 	console.log('Docset scaffold created!')
+	// copy all jsdoc files to dashdocset
 	ncp(jsdocs, targetDocumentationDirectory, function (err) {
 		if (err) {
 			return console.error(err);
 		}
 		console.log('Documentation copied!');
 	});
+	// create info.plist file
+	fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8' , function(err, data) {
+		var infoPlistTemplated = _.template(data, {
+			'bundleName': name
+		});
+		console.log(infoPlistTemplated);
+		fs.writeFileSync( docsetPath + 'Info.plist', infoPlistTemplated );
+	})
+
 });
