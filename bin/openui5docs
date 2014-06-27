@@ -6,6 +6,7 @@ var path = require('path');
 var log = require('verbalize');
 var _ = require('lodash');
 var ncp = require('ncp').ncp;
+var sqlite3 = require('sqlite3').verbose();
 var argv = require('minimist')(process.argv.slice(2));
 
 /**
@@ -24,6 +25,25 @@ var jsdocs = argv._[1] || argv.d || argv.jsdocs;
 
 var docsetPath = path.resolve() + '/' + name + '.docset/';
 var targetDocumentationDirectory = docsetPath + 'Contents/Resources/Documents/';
+
+/**
+ * populates database with data from docset
+ */
+function populateDatabase() {
+	// create sqlite database
+	var sqliteFile = docsetPath + 'Contents/Resources/docSet.dsidx';
+	var database = new sqlite3.Database(sqliteFile);
+
+	database.serialize(function () {
+		// create tables
+		database.run("CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT)");
+		database.run("CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path)");
+		var stmt = database.prepare("INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?)");
+
+		stmt.finalize();
+	});
+	database.close();
+}
 /**
  * Application
  */
@@ -37,14 +57,14 @@ mkdirp(targetDocumentationDirectory, function () {
 			return console.error(err);
 		}
 		console.log('Documentation copied!');
+
+		populateDatabase();
 	});
 	// create info.plist file
-	fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8' , function(err, data) {
+	fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8', function (err, data) {
 		var infoPlistTemplated = _.template(data, {
 			'bundleName': name
 		});
-		console.log(infoPlistTemplated);
-		fs.writeFileSync( docsetPath + 'Info.plist', infoPlistTemplated );
-	})
-
+		fs.writeFileSync(docsetPath + 'Contents/Info.plist', infoPlistTemplated);
+	});
 });
