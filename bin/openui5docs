@@ -44,10 +44,10 @@ function populateDatabase() {
 		// get all files in to index
 		fs.readdir(targetDocumentationDirectory, function (err, files) {
 			files.forEach(function (file) {
-				// insert class to index
-				var className = file.substring(0, file.length - 5);
-				stmt.run(className, 'Class', file);
-				console.log('add class to db index: ' + className);
+
+				if(file == '.DS_Store') {
+					return;
+				}
 
 				// crawl each file and insert its contents to index
 				var crawler = new Crawler({
@@ -56,6 +56,11 @@ function populateDatabase() {
 					// This will be called for each crawled page
 					"callback"      : function (error, result, $) {
 						if(error == null) {
+							// insert class to index
+							var className = file.substring(0, file.length - 5);
+							stmt.run(className, 'Class', file);
+							console.log('add class to db index: ' + className);
+
 							console.log('parse file "' + file + '" for events');
 							// $ is a jQuery instance scoped to the server-side DOM of the page
 							// add all events to index
@@ -63,6 +68,24 @@ function populateDatabase() {
 								var eventName = $(event).text();
 								stmt.run(className + ':' + eventName, 'Event', file + '#' + $(event).attr('id'));
 								console.log('add event to db index: ' + eventName);
+							});
+
+							$('.subsection-title').each(function(index, section) {
+								if($(section).text() == 'Methods') {
+									$(section).next().find('[id]').each(function(i, method) {
+										stmt.run(className + ':' + $(method).text(), 'Method', file + '#' + $(method).attr('id'));
+										console.log('add method to db index: ' + $(method).text());
+									});
+								}
+							});
+
+							$('.subsection-title').each(function(index, section) {
+								if($(section).text() == 'Members') {
+									$(section).next().find('[id]').each(function(i, method) {
+										stmt.run(className + ':' + $(method).text(), 'Property', file + '#' + $(method).attr('id'));
+										console.log('add Property to db index: ' + $(method).text());
+									});
+								}
 							});
 						}
 					}
