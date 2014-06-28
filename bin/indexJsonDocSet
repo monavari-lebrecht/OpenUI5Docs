@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var path = require('path');
+var log = require('verbalize');
+var argv = require('minimist')(process.argv.slice(2));
+
+/**
+ * Everything in the file should be customized
+ */
+
+
+	// Verbalize `runner`
+log.runner = 'open-ui5-docs';
+
+// Use `-n` or `--name` to specify the text to append
+var name = argv._[0] || argv.n || argv.name;
+
+// Use `-n` or `--name` to specify the text to append
+var jsdocs = argv._[1] || argv.d || argv.jsdocs;
+
+/**
+ * Application
+ */

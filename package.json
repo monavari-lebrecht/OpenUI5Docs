@@ -25,7 +25,8 @@
 	],
 	"preferGlobal": true,
 	"bin"         : {
-		"dashDocSet": "./bin/dashDocSet"
+		"dashDocSet": "./bin/dashDocSet",
+		"indexJsonDocSet": "./bin/indexJsonDocSet"
 	},
 	"main"        : "index.js",
 	"engines"     : {
@@ -39,6 +40,7 @@
 		"verbalize": "~0.1.1",
 		"mkdirp"   : "*",
 		"sqlite3"  : "*",
-		"lodash"   : "*"
+		"lodash"   : "*",
+		"jsonfile" : "~1.1.1"
 	}
 }
