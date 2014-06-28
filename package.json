@@ -25,7 +25,7 @@
 	],
 	"preferGlobal": true,
 	"bin"         : {
-		"openui5docs": "./bin/openui5docs"
+		"dashDocSet": "./bin/dashDocSet"
 	},
 	"main"        : "index.js",
 	"engines"     : {
