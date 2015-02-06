@@ -5,6 +5,7 @@ var mkdirp = require('mkdirp');
 var path = require('path');
 var log = require('verbalize');
 var _ = require('lodash');
+var path = require('path');
 var ncp = require('ncp').ncp;
 var sqlite3 = require('sqlite3').verbose();
 var Crawler = require("crawler").Crawler;
@@ -15,7 +16,7 @@ var argv = require('minimist')(process.argv.slice(2));
  */
 
 
-	// Verbalize `runner`
+    // Verbalize `runner`
 log.runner = 'open-ui5-docs';
 
 // Use `-n` or `--name` to specify the text to append
@@ -23,6 +24,9 @@ var name = argv._[0] || argv.n || argv.name;
 
 // Use `-n` or `--name` to specify the text to append
 var jsdocs = argv._[1] || argv.d || argv.jsdocs;
+jsdocs += 'docs/api';
+
+var version = argv._[2] || argv.v || argv.version;
 
 var docsetPath = path.resolve() + '/' + name + '.docset/';
 var targetDocumentationDirectory = docsetPath + 'Contents/Resources/Documents/';
@@ -31,110 +35,140 @@ var targetDocumentationDirectory = docsetPath + 'Contents/Resources/Documents/';
  * populates database with data from docset
  */
 function populateDatabase() {
-	// create sqlite database
-	var sqliteFile = docsetPath + 'Contents/Resources/docSet.dsidx';
-	var database = new sqlite3.Database(sqliteFile);
+    // create sqlite database
+    var sqliteFile = docsetPath + 'Contents/Resources/docSet.dsidx';
+    var database = new sqlite3.Database(sqliteFile);
 
-	database.serialize(function () {
-		// create tables
-		database.run("CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT)");
-		database.run("CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path)");
-		var stmt = database.prepare("INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?)");
+    database.serialize(function () {
+        // create tables
+        database.run("CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT)");
+        database.run("CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path)");
+        var stmt = database.prepare("INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?)");
 
-		// get all files in to index
-		fs.readdir(targetDocumentationDirectory, function (err, files) {
-			files.forEach(function (file) {
+        // get all files in to index
+        function parseFile(filePath, file) {
+            console.log('parse file "' + filePath + file);
 
-				if(file == '.DS_Store') {
-					return;
-				}
+            var relativeFileName = path.relative(targetDocumentationDirectory, filePath);
 
-				// crawl each file and insert its contents to index
-				var crawler = new Crawler({
-					"maxConnections": 10,
+            fs.readFile(filePath, function (err, data) {
+                // crawl each file and insert its contents to index
+                var crawler = new Crawler({
+                    "maxConnections": 10,
 
-					// This will be called for each crawled page
-					"callback"      : function (error, result, $) {
-						if(error == null) {
-							// insert class to index
-							var className = file.substring(0, file.length - 5);
-							stmt.run(className, 'Class', file);
-							console.log('add class to db index: ' + className);
+                    // This will be called for each crawled page
+                    "callback": function (error, result, $) {
 
-							console.log('parse file "' + file + '" for events');
-							// $ is a jQuery instance scoped to the server-side DOM of the page
-							// add all events to index
-							$('[id^="event:"]').each(function (index, event) {
-								var eventName = $(event).text();
-								stmt.run(className + ':' + eventName, 'Event', file + '#' + $(event).attr('id'));
-								console.log('add event to db index: ' + eventName);
-							});
+                        var className = file.substring(0, file.length - 5);
+                        if (error == null) {
+                            // insert class to index
+                            $('h1.classTitle').each(function (index, title) {
+                                var type = $(title).text().split(' ')[0].trim();
+                                switch (type) {
+                                    case 'Index':
+                                        type = 'Guide';
+                                        break;
+                                    case 'final':
+                                    case 'abstract':
+                                        type = 'Class'
+                                        break;
+                                }
+                                stmt.run(className, type, relativeFileName);
+                                console.log('add ' + type + ' to db index: ' + className);
+                            });
 
-							$('.subsection-title').each(function(index, section) {
-								if($(section).text() == 'Methods') {
-									$(section).next().find('[id]').each(function(i, method) {
-										stmt.run(className + ':' + $(method).text(), 'Method', file + '#' + $(method).attr('id'));
-										console.log('add method to db index: ' + $(method).text());
-									});
-								}
-							});
+                            // $ is a jQuery instance scoped to the server-side DOM of the page
+                            // add all events to index
+                            $('[href*=event]').each(function (index, event) {
+                                var eventName = $(event).text();
+                                stmt.run(eventName, 'Event', $(event).attr('href'));
+                                console.log('add event to db index: ' + eventName);
+                            });
 
-							$('.subsection-title').each(function(index, section) {
-								if($(section).text() == 'Members') {
-									$(section).next().find('[id]').each(function(i, method) {
-										stmt.run(className + ':' + $(method).text(), 'Property', file + '#' + $(method).attr('id'));
-										console.log('add Property to db index: ' + $(method).text());
-									});
-								}
-							});
-						}
-					}
-				});
+                            $('.classMethod b a').each(function (index, section) {
+                                if ($(section).text() == 'Methods') {
+                                    stmt.run(className + ':' + $(method).text(), 'Method', $(section).attr('href'));
+                                    console.log('add method to db index: ' + $(method).text());
+                                }
+                            });
+                        }
+                    }
+                });
 
-				var filePath = targetDocumentationDirectory + file;
-				fs.lstat(filePath, function (err, stats) {
-					if (stats.isFile()) {
-						fs.readFile(filePath, function (err, data) {
-							crawler.queue([
-								{
-									'html': data
-								}
-							]);
-						});
-					}
-				});
-			});
-		});
-		// when everything is parsed... write to db
-		process.on('exit', function (code) {
-			console.log('write to db');
-			stmt.finalize();
+                crawler.queue([
+                    {
+                        'html': data
+                    }
+                ]);
+            });
+        }
 
-			database.close();
-		});
-	});
+        var crawlDir = function (dir) {
+            console.log('crawl direcotry "' + dir + '"');
+            fs.readdir(dir, function (err, files) {
+                if (files) {
+                    files.forEach(function (file) {
+                        var filePath = dir + '/' + file;
+                        fs.lstat(filePath, function (err, stats) {
+                            if (stats && stats.isFile()) {
+                                if (file.indexOf('.html') !== -1)
+                                    parseFile(filePath, file);
+                            }
+                            else {
+                                crawlDir(filePath);
+                            }
+                        });
+                    });
+                }
+            });
+        };
+
+        crawlDir(targetDocumentationDirectory);
+
+        // when everything is parsed... write to db
+        process.on('exit', function (code) {
+            console.log('write to db');
+            stmt.finalize();
+
+            database.close();
+        });
+    });
 }
 /**
  * Application
  */
 
-	// create filesystem for dash docset
-mkdirp(targetDocumentationDirectory, function () {
-	console.log('Docset scaffold created!')
-	// copy all jsdoc files to dashdocset
-	ncp(jsdocs, targetDocumentationDirectory, function (err) {
-		if (err) {
-			return console.error(err);
-		}
-		console.log('Documentation copied!');
+//fs.rmdirSync(targetDocumentationDirectory);
 
-		populateDatabase();
-	});
-	// create info.plist file
-	fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8', function (err, data) {
-		var infoPlistTemplated = _.template(data, {
-			'bundleName': name
-		});
-		fs.writeFileSync(docsetPath + 'Contents/Info.plist', infoPlistTemplated);
-	});
+    // create filesystem for dash docset
+mkdirp(targetDocumentationDirectory, function () {
+    console.log('Docset scaffold created!')
+    // copy all jsdoc files to dashdocset
+    ncp(jsdocs, targetDocumentationDirectory, function (err) {
+        if (err) {
+            return console.error(err);
+        }
+        console.log('Documentation copied!');
+
+        populateDatabase();
+
+        // create info.plist file
+        fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8', function (err, data) {
+            var infoPlistTemplated = _.template(data, {
+                'bundleName': name
+            });
+            fs.writeFileSync(docsetPath + 'Contents/Info.plist', infoPlistTemplated);
+        });
+
+        fs.readFile(__dirname + '/../templates/index.html', 'utf-8', function (err, data) {
+            var indexTemplated = _.template(data, {
+                'version': version
+            });
+            fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index.html', indexTemplated);
+        });
+
+        fs.createReadStream(__dirname + '/../templates/icon.png').pipe(fs.createWriteStream(docsetPath + 'icon.png'));
+        fs.createReadStream(__dirname + '/../templates/icon@2x.png').pipe(fs.createWriteStream(docsetPath + 'icon@2x.png'));
+        fs.createReadStream(__dirname + '/../templates/icotxt_white_220x72_blue_open.png').pipe(fs.createWriteStream(docsetPath + 'Contents/Resources/Documents/icotxt_white_220x72_blue_open.png'));
+    });
 });
