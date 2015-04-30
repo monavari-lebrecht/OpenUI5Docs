@@ -4,4 +4,6 @@ OpenUI5 DashDocSet Builder
 
 Usage:
 
-/usr/local/bin/node bin/dashDocSet.js -n OpenUI5 -d path/to/yourOpenUI5JSDoc
+wget https://openui5.hana.ondemand.com/downloads/openui5-sdk-1.28.5.zip
+unzip -d openui5-sdk-1.28.5 openui5-sdk-1.28.5.zip
+/usr/local/bin/node bin/dashDocSet.js -n OpenUI5 -d openui5-sdk-1.28.5/ -v1.28.5
