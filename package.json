@@ -1,46 +1,47 @@
 {
-	"name"        : "open-ui5-docs",
-	"description" : "generates docs for jsdoc",
-	"version"     : "0.1.0",
-	"homepage"    : "https://github.com/hijolan/open-ui5-docs",
-	"author"      : {
-		"name": "Constantin Lebrecht",
-		"url" : "www.monavari.de"
-	},
-	"repository"  : {
-		"type": "git",
-		"url" : "git://github.com/hijolan/open-ui5-docs.git"
-	},
-	"bugs"        : {
-		"url": "https://github.com/hijolan/open-ui5-docs/issues"
-	},
-	"licenses"    : [
-		{
-			"type": "MIT",
-			"url" : "https://github.com/hijolan/open-ui5-docs/blob/master/LICENSE-MIT"
-		}
-	],
-	"keywords"    : [
-		"cli", "command line"
-	],
-	"preferGlobal": true,
-	"bin"         : {
-		"dashDocSet": "./bin/dashDocSet",
-		"indexJsonDocSet": "./bin/indexJsonDocSet"
-	},
-	"main"        : "index.js",
-	"engines"     : {
-		"node": ">=0.8"
-	},
-	"scripts"     : {
-		"test": "mocha -R test"
-	},
-	"dependencies": {
-		"minimist" : "~0.0.8",
-		"verbalize": "~0.1.1",
-		"mkdirp"   : "*",
-		"sqlite3"  : "*",
-		"lodash"   : "*",
-		"jsonfile" : "~1.1.1"
-	}
+  "name": "open-ui5-docs",
+  "description": "generates docs for jsdoc",
+  "version": "0.1.0",
+  "homepage": "https://github.com/hijolan/open-ui5-docs",
+  "author": {
+    "name": "Constantin Lebrecht",
+    "url": "www.monavari.de"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hijolan/open-ui5-docs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hijolan/open-ui5-docs/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hijolan/open-ui5-docs/blob/master/LICENSE-MIT"
+    }
+  ],
+  "keywords": [
+    "cli",
+    "command line"
+  ],
+  "preferGlobal": true,
+  "bin": {
+    "dashDocSet": "./bin/dashDocSet.js"
+  },
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.8"
+  },
+  "scripts": {
+    "test": "mocha -R test"
+  },
+  "dependencies": {
+    "crawler": "^0.4.3",
+    "jsonfile": "~1.1.1",
+    "lodash": "*",
+    "minimist": "~0.0.8",
+    "mkdirp": "*",
+    "sqlite3": "*",
+    "verbalize": "~0.1.1"
+  }
 }

@@ -4,4 +4,4 @@ OpenUI5 DashDocSet Builder
 
 Usage:
 
-/usr/local/bin/node bin/dashDocSet -n OpenUI5 -d path/to/yourOpenUI5JSDoc
+/usr/local/bin/node bin/dashDocSet.js -n OpenUI5 -d path/to/yourOpenUI5JSDoc

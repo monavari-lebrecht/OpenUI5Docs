@@ -8,7 +8,7 @@ var _ = require('lodash');
 var path = require('path');
 var ncp = require('ncp').ncp;
 var sqlite3 = require('sqlite3').verbose();
-var Crawler = require("crawler").Crawler;
+var Crawler = require("crawler");
 var argv = require('minimist')(process.argv.slice(2));
 
 /**
@@ -79,17 +79,15 @@ function populateDatabase() {
 
                             // $ is a jQuery instance scoped to the server-side DOM of the page
                             // add all events to index
-                            $('[href*=event]').each(function (index, event) {
+                            $('[href*=event]:not([href^=#])').each(function (index, event) {
                                 var eventName = $(event).text();
-                                stmt.run(eventName, 'Event', $(event).attr('href'));
-                                console.log('add event to db index: ' + eventName);
+                                stmt.run(className + ':' + eventName, 'Event', className + '');
+                                console.log('add Event to db index: ' + eventName);
                             });
 
-                            $('.classMethod b a').each(function (index, section) {
-                                if ($(section).text() == 'Methods') {
-                                    stmt.run(className + ':' + $(method).text(), 'Method', $(section).attr('href'));
-                                    console.log('add method to db index: ' + $(method).text());
-                                }
+                            $('.classMethod b a:not([href^=#])').each(function (index, section) {
+                                stmt.run(className + ':' + $(section).text(), 'Method', $(section).attr('href').replace('../', ''));
+                                console.log('add Method to db index: ' + $(section).text());
                             });
                         }
                     }
