@@ -61,9 +61,10 @@ function populateDatabase() {
 
                         var className = file.substring(0, file.length - 5);
                         if (error == null) {
+                            var type;
                             // insert class to index
                             $('h1.classTitle').each(function (index, title) {
-                                var type = $(title).text().split(' ')[0].trim();
+                                type = $(title).text().split(' ')[0].trim();
                                 switch (type) {
                                     case 'Index':
                                         type = 'Guide';
@@ -74,8 +75,6 @@ function populateDatabase() {
                                         break;
                                 }
 
-                                $(title).prepend('<a name="//apple_ref/cpp/' + type + '/' + className + '" class="dashAnchor"></a>');
-
                                 stmt.run(className, type, relativeFileName);
                                 console.log('add ' + type + ' to db index: ' + className);
                             });
@@ -85,9 +84,19 @@ function populateDatabase() {
                             $('[href*=event]:not([href^=#])').each(function (index, event) {
                                 var eventName = $(event).text();
 
-                                stmt.run(className + ':' + eventName, 'Event', className + '');
+                                stmt.run(className + ':' + eventName, 'Event', $(event).attr('href').replace('../', ''));
                                 console.log('add Event to db index: ' + eventName);
                             });
+
+                            // enumerations
+                            if(type === 'Enum') {
+                                $('.sectionItems .classProperty > a').each(function (index, enumeration) {
+                                    "use strict";
+                                    var enumName = className + $(enumeration).text().trim() + $(enumeration).attr('name');
+                                    stmt.run(enumName, 'Enum', relativeFileName + '#' + $(enumeration).attr('name'));
+                                    $(enumeration).prepend('<a name="//apple_ref/cpp/Enum/' + $(enumeration).attr('name').slice(1) + '" class="dashAnchor"></a>');
+                                });
+                            }
 
                             $('.classMethod b a:not([href^=#]):not([name^="//apple_ref/cpp/"])').each(function (index, section) {
 
@@ -102,6 +111,14 @@ function populateDatabase() {
 
                                 $(method).prepend('<a name="//apple_ref/cpp/Method/' + $(method).attr('name') + '" class="dashAnchor"></a>');
                             });
+
+                            $('.classProperty > a[name^=event]').each(function (index, event) {
+                                "use strict";
+
+                                $(event).prepend('<a name="//apple_ref/cpp/Event/' + $(event).attr('name').replace('event:', '') + '" class="dashAnchor"></a>');
+                            });
+
+                            $('.classItem').prepend('<a name="//apple_ref/cpp/Class/' + className + '" class="dashAnchor"></a>');
 
                             fs.writeFile(targetDocumentationDirectory + relativeFileName, '<!DOCTYPE html><html xml:lang="en" lang="en">' +
                               $('html').html() +
