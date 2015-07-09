@@ -70,9 +70,12 @@ function populateDatabase() {
                                         break;
                                     case 'final':
                                     case 'abstract':
-                                        type = 'Class'
+                                        type = 'Class';
                                         break;
                                 }
+
+                                $(title).prepend('<a name="//apple_ref/cpp/' + type + '/' + className + '" class="dashAnchor"></a>');
+
                                 stmt.run(className, type, relativeFileName);
                                 console.log('add ' + type + ' to db index: ' + className);
                             });
@@ -81,14 +84,28 @@ function populateDatabase() {
                             // add all events to index
                             $('[href*=event]:not([href^=#])').each(function (index, event) {
                                 var eventName = $(event).text();
+
                                 stmt.run(className + ':' + eventName, 'Event', className + '');
                                 console.log('add Event to db index: ' + eventName);
                             });
 
-                            $('.classMethod b a:not([href^=#])').each(function (index, section) {
+                            $('.classMethod b a:not([href^=#]):not([name^="//apple_ref/cpp/"])').each(function (index, section) {
+
+                                // mark in db
                                 stmt.run(className + ':' + $(section).text(), 'Method', $(section).attr('href').replace('../', ''));
                                 console.log('add Method to db index: ' + $(section).text());
                             });
+
+                            // modify dom to inject toc information
+                            $('.classMethod > a').each(function (index, method) {
+                                "use strict";
+
+                                $(method).prepend('<a name="//apple_ref/cpp/Method/' + $(method).attr('name') + '" class="dashAnchor"></a>');
+                            });
+
+                            fs.writeFile(targetDocumentationDirectory + relativeFileName, '<!DOCTYPE html><html xml:lang="en" lang="en">' +
+                              $('html').html() +
+                              '</html>');
                         }
                     }
                 });
@@ -162,7 +179,7 @@ mkdirp(targetDocumentationDirectory, function () {
             var indexTemplated = _.template(data, {
                 'version': version
             });
-            fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index.html', indexTemplated);
+            fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index_docset.html', indexTemplated);
         });
 
         fs.createReadStream(__dirname + '/../templates/icon.png').pipe(fs.createWriteStream(docsetPath + 'icon.png'));
