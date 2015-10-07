@@ -47,7 +47,7 @@ function populateDatabase() {
 
         // get all files in to index
         function parseFile(filePath, file) {
-            console.log('parse file "' + filePath + file);
+            console.log('parse file "' + filePath);
 
             var relativeFileName = path.relative(targetDocumentationDirectory, filePath);
 
@@ -64,7 +64,7 @@ function populateDatabase() {
                             var type;
                             // insert class to index
                             $('h1.classTitle').each(function (index, title) {
-                                type = $(title).text().split(' ')[0].trim();
+                                type = $(title).text().trim().split(' ')[0].trim();
                                 switch (type) {
                                     case 'Index':
                                         type = 'Guide';
@@ -84,12 +84,12 @@ function populateDatabase() {
                             $('[href*=event]:not([href^=#])').each(function (index, event) {
                                 var eventName = $(event).text();
 
-                                stmt.run(className + ':' + eventName, 'Event', $(event).attr('href').replace('../', ''));
+                                stmt.run(className + ':' + eventName, 'Event', relativeFileName + '#' + $(event).attr('href').split('#')[1]);
                                 console.log('add Event to db index: ' + eventName);
                             });
 
                             // enumerations
-                            if(type === 'Enum') {
+                            if (type === 'Enum') {
                                 $('.sectionItems .classProperty > a').each(function (index, enumeration) {
                                     "use strict";
                                     var enumName = className + $(enumeration).text().trim() + $(enumeration).attr('name');
@@ -101,7 +101,20 @@ function populateDatabase() {
                             $('.classMethod b a:not([href^=#]):not([name^="//apple_ref/cpp/"])').each(function (index, section) {
 
                                 // mark in db
-                                stmt.run(className + ':' + $(section).text(), 'Method', $(section).attr('href').replace('../', ''));
+                                var type = 'Method';
+                                var methodName = $(section).text();
+                                if ($(section).text().indexOf(className) === 0) {
+                                    type = 'Function';
+                                }else {
+                                    type = 'Method';
+                                    if(methodName[0] === '.') {
+                                        methodName = methodName.slice(1);
+                                    }
+                                    methodName = className + ':' + methodName;
+                                }
+
+                                stmt.run(methodName, type, relativeFileName + $(section).attr('href').replace(file, ''));
+
                                 console.log('add Method to db index: ' + $(section).text());
                             });
 
@@ -109,7 +122,13 @@ function populateDatabase() {
                             $('.classMethod > a').each(function (index, method) {
                                 "use strict";
 
-                                $(method).prepend('<a name="//apple_ref/cpp/Method/' + $(method).attr('name') + '" class="dashAnchor"></a>');
+                                var methodName = $(method).attr('name');
+                                var type = 'Method';
+                                if (methodName[0] === '.' || $(method).text().indexOf(className) === 0) {
+                                    methodName = methodName.slice(1);
+                                    type = 'Function';
+                                }
+                                $(method).prepend('<a name="//apple_ref/cpp/' + type + '/' + methodName + '" class="dashAnchor"></a>');
                             });
 
                             $('.classProperty > a[name^=event]').each(function (index, event) {
@@ -121,8 +140,8 @@ function populateDatabase() {
                             $('.classItem').prepend('<a name="//apple_ref/cpp/Class/' + className + '" class="dashAnchor"></a>');
 
                             fs.writeFile(targetDocumentationDirectory + relativeFileName, '<!DOCTYPE html><html xml:lang="en" lang="en">' +
-                              $('html').html() +
-                              '</html>');
+                                $('html').html() +
+                                '</html>');
                         }
                     }
                 });
