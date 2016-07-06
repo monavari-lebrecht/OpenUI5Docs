@@ -47,7 +47,7 @@ function populateDatabase() {
 
         // get all files in to index
         function parseFile(filePath, file) {
-            console.log('parse file "' + filePath + file);
+            console.log('parse file "' + filePath);
 
             var relativeFileName = path.relative(targetDocumentationDirectory, filePath);
 
@@ -61,18 +61,20 @@ function populateDatabase() {
 
                         var className = file.substring(0, file.length - 5);
                         if (error == null) {
+                            var type;
                             // insert class to index
                             $('h1.classTitle').each(function (index, title) {
-                                var type = $(title).text().split(' ')[0].trim();
+                                type = $(title).text().trim().split(' ')[0].trim();
                                 switch (type) {
                                     case 'Index':
                                         type = 'Guide';
                                         break;
                                     case 'final':
                                     case 'abstract':
-                                        type = 'Class'
+                                        type = 'Class';
                                         break;
                                 }
+
                                 stmt.run(className, type, relativeFileName);
                                 console.log('add ' + type + ' to db index: ' + className);
                             });
@@ -81,14 +83,65 @@ function populateDatabase() {
                             // add all events to index
                             $('[href*=event]:not([href^=#])').each(function (index, event) {
                                 var eventName = $(event).text();
-                                stmt.run(className + ':' + eventName, 'Event', className + '');
+
+                                stmt.run(className + ':' + eventName, 'Event', relativeFileName + '#' + $(event).attr('href').split('#')[1]);
                                 console.log('add Event to db index: ' + eventName);
                             });
 
-                            $('.classMethod b a:not([href^=#])').each(function (index, section) {
-                                stmt.run(className + ':' + $(section).text(), 'Method', $(section).attr('href').replace('../', ''));
+                            // enumerations
+                            if (type === 'Enum') {
+                                $('.sectionItems .classProperty > a').each(function (index, enumeration) {
+                                    "use strict";
+                                    var enumName = className + $(enumeration).text().trim() + $(enumeration).attr('name');
+                                    stmt.run(enumName, 'Enum', relativeFileName + '#' + $(enumeration).attr('name'));
+                                    $(enumeration).prepend('<a name="//apple_ref/cpp/Enum/' + $(enumeration).attr('name').slice(1) + '" class="dashAnchor"></a>');
+                                });
+                            }
+
+                            $('.classMethod b a:not([href^=#]):not([name^="//apple_ref/cpp/"])').each(function (index, section) {
+
+                                // mark in db
+                                var type = 'Method';
+                                var methodName = $(section).text();
+                                if ($(section).text().indexOf(className) === 0) {
+                                    type = 'Function';
+                                }else {
+                                    type = 'Method';
+                                    if(methodName[0] === '.') {
+                                        methodName = methodName.slice(1);
+                                    }
+                                    methodName = className + ':' + methodName;
+                                }
+
+                                stmt.run(methodName, type, relativeFileName + $(section).attr('href').replace(file, ''));
+
                                 console.log('add Method to db index: ' + $(section).text());
                             });
+
+                            // modify dom to inject toc information
+                            $('.classMethod > a').each(function (index, method) {
+                                "use strict";
+
+                                var methodName = $(method).attr('name');
+                                var type = 'Method';
+                                if (methodName[0] === '.' || $(method).text().indexOf(className) === 0) {
+                                    methodName = methodName.slice(1);
+                                    type = 'Function';
+                                }
+                                $(method).prepend('<a name="//apple_ref/cpp/' + type + '/' + methodName + '" class="dashAnchor"></a>');
+                            });
+
+                            $('.classProperty > a[name^=event]').each(function (index, event) {
+                                "use strict";
+
+                                $(event).prepend('<a name="//apple_ref/cpp/Event/' + $(event).attr('name').replace('event:', '') + '" class="dashAnchor"></a>');
+                            });
+
+                            $('.classItem').prepend('<a name="//apple_ref/cpp/Class/' + className + '" class="dashAnchor"></a>');
+
+                            fs.writeFile(targetDocumentationDirectory + relativeFileName, '<!DOCTYPE html><html xml:lang="en" lang="en">' +
+                                $('html').html() +
+                                '</html>');
                         }
                     }
                 });
@@ -152,17 +205,17 @@ mkdirp(targetDocumentationDirectory, function () {
 
         // create info.plist file
         fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8', function (err, data) {
-            var infoPlistTemplated = _.template(data, {
+            var infoPlistTemplated = _.template(data)({
                 'bundleName': name
             });
             fs.writeFileSync(docsetPath + 'Contents/Info.plist', infoPlistTemplated);
         });
 
         fs.readFile(__dirname + '/../templates/index.html', 'utf-8', function (err, data) {
-            var indexTemplated = _.template(data, {
+            var indexTemplated = _.template(data)({
                 'version': version
             });
-            fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index.html', indexTemplated);
+            fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index_docset.html', indexTemplated);
         });
 
         fs.createReadStream(__dirname + '/../templates/icon.png').pipe(fs.createWriteStream(docsetPath + 'icon.png'));

@@ -42,6 +42,7 @@
     "minimist": "~0.0.8",
     "mkdirp": "*",
     "sqlite3": "*",
-    "verbalize": "~0.1.1"
+    "verbalize": "~0.1.1",
+    "ncp": "^2.0.0"
   }
 }
