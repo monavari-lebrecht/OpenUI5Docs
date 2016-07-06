@@ -205,14 +205,14 @@ mkdirp(targetDocumentationDirectory, function () {
 
         // create info.plist file
         fs.readFile(__dirname + '/../templates/Info.plist', 'utf-8', function (err, data) {
-            var infoPlistTemplated = _.template(data, {
+            var infoPlistTemplated = _.template(data)({
                 'bundleName': name
             });
             fs.writeFileSync(docsetPath + 'Contents/Info.plist', infoPlistTemplated);
         });
 
         fs.readFile(__dirname + '/../templates/index.html', 'utf-8', function (err, data) {
-            var indexTemplated = _.template(data, {
+            var indexTemplated = _.template(data)({
                 'version': version
             });
             fs.writeFileSync(docsetPath + 'Contents/Resources/Documents/index_docset.html', indexTemplated);
